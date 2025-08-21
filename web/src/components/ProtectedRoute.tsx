@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,10 +21,17 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
+  // Not logged in → go to landing
   if (!user) {
     return <Navigate to="/" replace />;
   }
 
+  // Logged in but no username → force Profile setup
+  if (!user.username) {
+    return <Navigate to="/profile" replace />;
+  }
+
+  // Otherwise → allow route
   return <>{children}</>;
 };
 

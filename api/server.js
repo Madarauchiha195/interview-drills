@@ -5,7 +5,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import { connectDB } from './utils/db.js';
+import connectDB from "./utils/db.js";
 import drillsRouter from './routes/drills.js';
 import attemptsRouter from './routes/attempts.js';
 import authRouter from './routes/auth.js';
@@ -18,7 +18,10 @@ app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
-app.use(cors({ origin: process.env.WEB_ORIGIN, credentials: true }));
+app.use(cors({
+  origin: process.env.WEB_ORIGIN || "http://localhost:5173",
+  credentials: true, // ✅ allow cookies
+}));
 app.use(rateLimit({
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 300000),
   max: Number(process.env.RATE_LIMIT_MAX || 100)
@@ -40,5 +43,5 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'internal server error' });
 });
 
-await connectDB(process.env.MONGO_URI);
+await connectDB();
 app.listen(PORT, '0.0.0.0', () => console.log(`API listening on ${PORT}`));

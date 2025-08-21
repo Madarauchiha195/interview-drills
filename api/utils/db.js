@@ -1,12 +1,14 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 export async function connectDB(uri) {
-  mongoose.set('strictQuery', false);
-  const opts = { autoIndex: true, maxPoolSize: 10 };
-  await mongoose.connect(uri, opts);
-  mongoose.connection.on('error', (err) => console.error('Mongo error', err));
-  process.on('SIGINT', async () => {
-    await mongoose.disconnect();
-    process.exit(0);
-  });
+  try {
+    console.log("🔗 Connecting to MongoDB:", uri);
+    await mongoose.connect(uri, {
+      dbName: process.env.MONGO_DB_NAME,
+    });
+    console.log("✅ MongoDB connected");
+  } catch (err) {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
+  }
 }

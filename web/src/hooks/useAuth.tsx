@@ -1,80 +1,58 @@
+// web/src/hooks/useAuth.tsx
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { getMe, googleAuthUrl, updateMeName } from "@/services/api";
+import type { User } from "@/services/api";
 
-import { createContext, useContext, useEffect, useState } from 'react';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  picture?: string;
-  username?: string;
-}
-
-interface AuthContextType {
+type AuthContextType = {
   user: User | null;
   loading: boolean;
   login: () => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUsername: (username: string) => Promise<void>;
-}
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Check session/jwt by calling backend /api/me
   useEffect(() => {
-    checkAuth();
+    (async () => {
+      try {
+        const u = await getMe();
+        setUser(u);
+      } catch (err) {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      // Check if user is stored in localStorage for demo purposes
-      const storedUser = localStorage.getItem('demo-user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const login = () => {
-    // Simulate successful Google login for demo
-    const demoUser: User = {
-      id: 'demo-123',
-      email: 'demo@example.com',
-      name: 'Demo User',
-      picture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facepad&facepad=2&w=256&h=256&q=80',
-      username: 'demouser'
-    };
-    
-    localStorage.setItem('demo-user', JSON.stringify(demoUser));
-    setUser(demoUser);
+    // Redirect browser to backend OAuth start endpoint (this will redirect back after login)
+    window.location.href = googleAuthUrl();
   };
 
   const logout = async () => {
     try {
-      localStorage.removeItem('demo-user');
+      await fetch(`${(import.meta.env.VITE_API_BASE_URL || "http://localhost:4000")}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
       setUser(null);
-    } catch (error) {
-      console.error('Logout failed:', error);
     }
   };
 
   const updateUsername = async (username: string) => {
-    try {
-      if (user) {
-        const updatedUser = { ...user, username };
-        localStorage.setItem('demo-user', JSON.stringify(updatedUser));
-        setUser(updatedUser);
-      }
-    } catch (error) {
-      console.error('Username update failed:', error);
-      throw error;
-    }
+    const updated = await updateMeName(username);
+    setUser(updated);
   };
 
   return (
@@ -85,9 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 };
