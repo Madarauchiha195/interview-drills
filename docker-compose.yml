@@ -15,15 +15,11 @@ services:
     container_name: upivot-api
     restart: always
     environment:
-      - DOCKER=true
-      - NODE_ENV=development
-      - PORT=4000
       - MONGO_URI=mongodb://mongo:27017/upivot
-      - MONGO_DB_NAME=upivot
       - JWT_SECRET=${JWT_SECRET}
-      - SESSION_COOKIE_NAME=token
-      - COOKIE_SECURE=false
-      - COOKIE_SAME_SITE=lax
+      - SESSION_COOKIE_NAME=${SESSION_COOKIE_NAME}
+      - COOKIE_SECURE=${COOKIE_SECURE}
+      - COOKIE_SAME_SITE=${COOKIE_SAME_SITE}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_CALLBACK_URL=http://localhost:4000/auth/google/callback
@@ -45,6 +41,7 @@ services:
       - "5173:5173"
     depends_on:
       - api
+
 
 volumes:
   mongo_data:

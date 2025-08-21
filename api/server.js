@@ -5,7 +5,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import connectDB from "./utils/db.js";
+import { connectDB } from "./utils/db.js";
 import drillsRouter from './routes/drills.js';
 import attemptsRouter from './routes/attempts.js';
 import authRouter from './routes/auth.js';

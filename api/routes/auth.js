@@ -67,10 +67,6 @@ router.get("/google/callback", async (req, res) => {
     });
 
     // Redirect logic
-    if (!user.username) {
-  return res.redirect(`${process.env.WEB_ORIGIN || 'http://localhost:5173'}/profile`);
-  }
-
     return res.redirect(`${process.env.WEB_ORIGIN || 'http://localhost:5173'}/dashboard`);
   } catch (err) {
     console.error(err.response?.data || err);
