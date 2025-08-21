@@ -14,34 +14,83 @@ import meRouter from './routes/me.js';
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(helmet());
-app.use(morgan('dev'));
-app.use(express.json({ limit: '1mb' }));
-app.use(cookieParser());
-app.use(cors({
-  origin: process.env.WEB_ORIGIN || "http://localhost:5173",
-  credentials: true, // ✅ allow cookies
+// Security middleware
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: false,
 }));
+
+// Logging
+app.use(morgan('dev'));
+
+// Body parsing
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Cookie parsing
+app.use(cookieParser());
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.WEB_ORIGIN || "http://localhost:5173",
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie'],
+};
+app.use(cors(corsOptions));
+
+// Rate limiting
 app.use(rateLimit({
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 300000),
-  max: Number(process.env.RATE_LIMIT_MAX || 100)
+  max: Number(process.env.RATE_LIMIT_MAX || 100),
+  message: { error: 'Too many requests, please try again later.' }
 }));
 
-// simple root
-app.get('/', (req,res) => res.send('API up — try GET /api/health'));
-app.get('/api/health', (req,res) => res.json({ ok: true }));
+// Health check endpoint
+app.get('/', (req, res) => res.send('Interview Drills API - Status: Running'));
+app.get('/api/health', (req, res) => res.json({ 
+  status: 'ok', 
+  timestamp: new Date().toISOString(),
+  uptime: process.uptime()
+}));
 
-// routes
+// API routes
 app.use('/auth', authRouter);
 app.use('/api/drills', drillsRouter);
 app.use('/api/attempts', attemptsRouter);
 app.use('/api/me', meRouter);
 
-// generic error handler
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(err.status || 500).json({ error: err.message || 'internal server error' });
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Route not found' });
 });
 
-await connectDB();
-app.listen(PORT, '0.0.0.0', () => console.log(`API listening on ${PORT}`));
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  
+  const status = err.status || 500;
+  const message = err.message || 'Internal server error';
+  
+  res.status(status).json({ 
+    error: message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// Start server
+async function startServer() {
+  try {
+    await connectDB();
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Interview Drills API listening on port ${PORT}`);
+      console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

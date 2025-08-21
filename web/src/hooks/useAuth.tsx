@@ -1,6 +1,6 @@
 // web/src/hooks/useAuth.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { getMe, googleAuthUrl, updateMeName } from "@/services/api";
+import { getMe, googleAuthUrl, updateMeName, updateMeUsername, checkAuthStatus } from "@/services/api";
 import type { User } from "@/services/api";
 
 type AuthContextType = {
@@ -9,6 +9,8 @@ type AuthContextType = {
   login: () => void;
   logout: () => Promise<void>;
   updateUsername: (username: string) => Promise<void>;
+  updateName: (name: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,17 +20,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   // Check session/jwt by calling backend /api/me
-  useEffect(() => {
-    (async () => {
-      try {
-        const u = await getMe();
-        setUser(u);
-      } catch (err) {
-        setUser(null);
-      } finally {
-        setLoading(false);
+  const checkAuth = async () => {
+    try {
+      // First check auth status
+      const authStatus = await checkAuthStatus();
+      
+      if (authStatus.authenticated && authStatus.user) {
+        setUser(authStatus.user);
+      } else {
+        // Try to get full user data
+        const fullUser = await getMe();
+        setUser(fullUser);
       }
-    })();
+    } catch (err) {
+      console.log("User not authenticated:", err);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    checkAuth();
   }, []);
 
   const login = () => {
@@ -51,12 +64,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUsername = async (username: string) => {
-    const updated = await updateMeName(username);
+    const updated = await updateMeUsername(username);
     setUser(updated);
   };
 
+  const updateName = async (name: string) => {
+    const updated = await updateMeName(name);
+    setUser(updated);
+  };
+
+  const refreshUser = async () => {
+    try {
+      const updated = await getMe();
+      setUser(updated);
+    } catch (err) {
+      console.error("Failed to refresh user:", err);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateUsername }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login, 
+      logout, 
+      updateUsername, 
+      updateName, 
+      refreshUser 
+    }}>
       {children}
     </AuthContext.Provider>
   );

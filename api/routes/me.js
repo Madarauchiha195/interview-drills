@@ -1,46 +1,103 @@
 // api/routes/me.js
 import express from 'express';
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';        // adjust path if necessary
-import { requireAuth } from '../middlewares/auth.js'; // if you want to use middleware
+import User from '../models/User.js';
+import { requireAuth } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// GET /api/me
-router.get('/', async (req, res) => {
+// GET /api/me - Get current user info
+router.get('/', requireAuth, async (req, res) => {
   try {
-    const token = req.cookies?.[process.env.SESSION_COOKIE_NAME];
-    if (!token) return res.status(401).json({ code: 'UNAUTHORIZED', message: 'No session' });
+    const user = await User.findById(req.user.id).lean();
 
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(payload.id).lean();
+    if (!user) {
+      return res.status(404).json({ 
+        code: 'NOT_FOUND', 
+        message: 'User not found' 
+      });
+    }
 
-    if (!user) return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
-
-    res.json({ id: user._id, email: user.email, name: user.name, picture: user.picture, username: user.username || null });
+    res.json({
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      username: user.username,
+      picture: user.picture,
+      providers: user.providers,
+      createdAt: user.createdAt
+    });
   } catch (err) {
-    res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid or expired token' });
+    console.error('Error fetching user:', err);
+    res.status(500).json({ 
+      code: 'INTERNAL_ERROR', 
+      message: 'Failed to fetch user information' 
+    });
   }
 });
 
-// PATCH /api/me  -> update name / username
-router.patch('/', async (req, res) => {
+// PATCH /api/me - Update user profile
+router.patch('/', requireAuth, async (req, res) => {
   try {
-    const token = req.cookies?.[process.env.SESSION_COOKIE_NAME];
-    if (!token) return res.status(401).json({ code: 'UNAUTHORIZED', message: 'No session' });
-
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const { name, username } = req.body;
     const updates = {};
-    if (req.body.name) updates.name = req.body.name;
-    if (req.body.username) updates.username = req.body.username;
 
-    const user = await User.findByIdAndUpdate(payload.id, { $set: updates }, { new: true }).lean();
+    // Validate input
+    if (name && typeof name === 'string' && name.trim()) {
+      updates.name = name.trim();
+    }
 
-    if (!user) return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
-    res.json({ id: user._id, email: user.email, name: user.name, username: user.username || null, picture: user.picture });
+    if (username && typeof username === 'string' && username.trim()) {
+      // Check if username is already taken
+      const existingUser = await User.findOne({ 
+        username: username.trim(),
+        _id: { $ne: req.user.id }
+      });
+      
+      if (existingUser) {
+        return res.status(400).json({ 
+          code: 'USERNAME_TAKEN', 
+          message: 'Username is already taken' 
+        });
+      }
+      
+      updates.username = username.trim();
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ 
+        code: 'BAD_REQUEST', 
+        message: 'No valid updates provided' 
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id, 
+      { $set: updates }, 
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!user) {
+      return res.status(404).json({ 
+        code: 'NOT_FOUND', 
+        message: 'User not found' 
+      });
+    }
+
+    res.json({
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      username: user.username,
+      picture: user.picture,
+      providers: user.providers,
+      createdAt: user.createdAt
+    });
   } catch (err) {
-    console.error(err);
-    res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid or expired token' });
+    console.error('Error updating user:', err);
+    res.status(500).json({ 
+      code: 'INTERNAL_ERROR', 
+      message: 'Failed to update user information' 
+    });
   }
 });
 

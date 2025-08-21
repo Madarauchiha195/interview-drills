@@ -13,8 +13,8 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, ChevronRight, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTimer } from '@/hooks/useTimer';
-import { drillsData } from '@/data/drillsData';
-import { Drill, MCQQuestion, DrillAttempt } from '@/types/drill';
+import { getDrill, submitAttempt } from '@/services/api';
+import { Drill } from '@/types/drill';
 
 const DrillPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +25,7 @@ const DrillPage = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [result, setResult] = useState<any | null>(null);
   const [showReview, setShowReview] = useState(false);
   const [startTime] = useState(Date.now());
@@ -45,51 +46,33 @@ const DrillPage = () => {
 
   useEffect(() => {
     if (id) {
-      const foundDrill = drillsData.find(d => d._id === id);
-      if (foundDrill) {
-        setDrill(foundDrill);
-      } else {
-        toast({
-          title: "Error",
-          description: "Drill not found.",
-          variant: "destructive",
-        });
-        navigate('/dashboard');
-      }
+      loadDrill();
     }
-  }, [id, navigate, toast]);
+  }, [id]);
+
+  const loadDrill = async () => {
+    try {
+      setIsLoading(true);
+      const drillData = await getDrill(id!);
+      setDrill(drillData);
+    } catch (error) {
+      console.error('Error loading drill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load drill. Please try again.",
+        variant: "destructive",
+      });
+      navigate('/dashboard');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAnswerChange = (questionId: string, answer: string) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
     }));
-  };
-
-  const calculateScore = () => {
-    if (!drill) return { score: 0, correctAnswers: 0, feedback: [] };
-    
-    let score = 0;
-    let correctAnswers = 0;
-    const feedback: string[] = [];
-    
-    drill.questions.forEach((question, index) => {
-      const userAnswer = answers[question.id];
-      const isCorrect = userAnswer === question.correctAnswer;
-      
-      if (isCorrect) {
-        score += question.points;
-        correctAnswers++;
-        feedback.push(`Question ${index + 1}: Correct! (+${question.points} points)`);
-      } else {
-        const correctOption = question.options.find(opt => opt.id === question.correctAnswer);
-        feedback.push(
-          `Question ${index + 1}: Incorrect. Correct answer: ${correctOption?.text || 'N/A'}`
-        );
-      }
-    });
-    
-    return { score, correctAnswers, feedback };
   };
 
   const handleSubmit = async () => {
@@ -110,41 +93,29 @@ const DrillPage = () => {
     
     try {
       const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-      const { score, correctAnswers, feedback } = calculateScore();
       
-      // Simulate API call - store in localStorage for now
-      const attempt: DrillAttempt = {
-        _id: Date.now().toString(),
-        drillId: drill._id,
-        userId: 'demo-user',
-        answers,
-        score,
-        totalQuestions: drill.questions.length,
-        correctAnswers,
-        timeSpent,
-        createdAt: new Date().toISOString(),
-        completed: true
-      };
+      // Submit attempt to backend
+      const response = await submitAttempt(drill._id, answers, timeSpent);
       
-      const existingAttempts = JSON.parse(localStorage.getItem('drillAttempts') || '[]');
-      existingAttempts.push(attempt);
-      localStorage.setItem('drillAttempts', JSON.stringify(existingAttempts));
-      
-      setResult({
-        score,
-        totalQuestions: drill.questions.length,
-        correctAnswers,
-        timeSpent,
-        feedback,
-        percentage: Math.round((score / drill.totalPoints) * 100)
-      });
-      
-      timer.pause();
-      
-      toast({
-        title: "Success!",
-        description: `You scored ${score}/${drill.totalPoints} points!`,
-      });
+      if (response.success) {
+        setResult({
+          score: response.attempt.score,
+          totalQuestions: response.attempt.totalQuestions,
+          correctAnswers: response.attempt.correctAnswers,
+          timeSpent: response.attempt.timeSpent,
+          percentage: response.attempt.score,
+          attemptId: response.attempt._id
+        });
+        
+        timer.pause();
+        
+        toast({
+          title: "Success!",
+          description: `You scored ${response.attempt.score}%!`,
+        });
+      } else {
+        throw new Error('Failed to submit attempt');
+      }
     } catch (error) {
       console.error('Submit error:', error);
       toast({
@@ -157,12 +128,28 @@ const DrillPage = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-4">Loading drill...</h1>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (!drill) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Loading drill...</h1>
+            <h1 className="text-2xl font-bold mb-4">Drill not found</h1>
+            <Button asChild>
+              <Link to="/dashboard">Back to Dashboard</Link>
+            </Button>
           </div>
         </div>
       </Layout>
@@ -190,9 +177,8 @@ const DrillPage = () => {
               score={result.score}
               totalQuestions={result.totalQuestions}
               timeSpent={result.timeSpent}
-              feedback={result.feedback}
               correctAnswers={result.correctAnswers}
-              totalPoints={drill.totalPoints}
+              totalPoints={drill.totalPoints || result.totalQuestions}
             />
 
             <div className="flex gap-4 justify-center">
@@ -216,8 +202,8 @@ const DrillPage = () => {
                   {drill.questions.map((question, index) => {
                     const userAnswer = answers[question.id];
                     const isCorrect = userAnswer === question.correctAnswer;
-                    const userOption = question.options.find(opt => opt.id === userAnswer);
-                    const correctOption = question.options.find(opt => opt.id === question.correctAnswer);
+                    const userOption = question.options?.find(opt => opt.id === userAnswer);
+                    const correctOption = question.options?.find(opt => opt.id === question.correctAnswer);
                     
                     return (
                       <div key={question.id} className="p-4 border rounded-lg">
@@ -235,6 +221,11 @@ const DrillPage = () => {
                           <p>
                             <strong>Correct answer:</strong> {correctOption?.text}
                           </p>
+                          {question.explanation && (
+                            <p className="text-muted-foreground">
+                              <strong>Explanation:</strong> {question.explanation}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
@@ -305,7 +296,7 @@ const DrillPage = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
                 Question {currentQuestion + 1} of {drill.questions.length}
-                <Badge variant="outline">{currentQ.points} points</Badge>
+                <Badge variant="outline">{currentQ.points || 1} points</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -318,7 +309,7 @@ const DrillPage = () => {
                 onValueChange={(value) => handleAnswerChange(currentQ.id, value)}
                 className="space-y-3"
               >
-                {currentQ.options.map((option) => (
+                {currentQ.options?.map((option) => (
                   <div key={option.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                     <RadioGroupItem value={option.id} id={option.id} />
                     <Label htmlFor={option.id} className="flex-1 cursor-pointer">

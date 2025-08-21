@@ -11,190 +11,49 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import { Clock, Target, Calendar, ArrowRight, RotateCcw, TrendingUp, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect } from 'react';
-
-interface Attempt {
-  _id: string;
-  drillId: {
-    _id: string;
-    title: string;
-    difficulty: 'easy' | 'medium' | 'hard';
-  };
-  score: number;
-  totalQuestions: number;
-  timeSpent: number;
-  createdAt: string;
-}
+import { getAttempts, getAttemptStats } from '@/services/api';
+import { Attempt, AttemptStats } from '@/services/api';
 
 const History = () => {
   const { toast } = useToast();
 
-  const { data: attempts, isLoading, error } = useQuery({
+  // Fetch attempts data
+  const { data: attemptsData, isLoading: attemptsLoading, error: attemptsError } = useQuery({
     queryKey: ['attempts'],
     queryFn: async () => {
-      // Enhanced demo data with more comprehensive statistics
-      const demoAttempts: Attempt[] = [
-        {
-          _id: '1',
-          drillId: { _id: 'drill1', title: 'JavaScript Fundamentals', difficulty: 'easy' },
-          score: 8,
-          totalQuestions: 10,
-          timeSpent: 300,
-          createdAt: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          _id: '2',
-          drillId: { _id: 'drill2', title: 'React Hooks Deep Dive', difficulty: 'medium' },
-          score: 7,
-          totalQuestions: 10,
-          timeSpent: 450,
-          createdAt: new Date(Date.now() - 172800000).toISOString()
-        },
-        {
-          _id: '3',
-          drillId: { _id: 'drill3', title: 'Advanced TypeScript', difficulty: 'hard' },
-          score: 6,
-          totalQuestions: 10,
-          timeSpent: 600,
-          createdAt: new Date(Date.now() - 259200000).toISOString()
-        },
-        {
-          _id: '4',
-          drillId: { _id: 'drill4', title: 'CSS Grid & Flexbox', difficulty: 'medium' },
-          score: 9,
-          totalQuestions: 10,
-          timeSpent: 320,
-          createdAt: new Date(Date.now() - 345600000).toISOString()
-        },
-        {
-          _id: '5',
-          drillId: { _id: 'drill5', title: 'Node.js Basics', difficulty: 'easy' },
-          score: 10,
-          totalQuestions: 10,
-          timeSpent: 280,
-          createdAt: new Date(Date.now() - 432000000).toISOString()
-        },
-        {
-          _id: '6',
-          drillId: { _id: 'drill6', title: 'Python Data Structures', difficulty: 'medium' },
-          score: 8,
-          totalQuestions: 10,
-          timeSpent: 380,
-          createdAt: new Date(Date.now() - 518400000).toISOString()
-        },
-        {
-          _id: '7',
-          drillId: { _id: 'drill1', title: 'JavaScript Fundamentals', difficulty: 'easy' },
-          score: 9,
-          totalQuestions: 10,
-          timeSpent: 250,
-          createdAt: new Date(Date.now() - 604800000).toISOString()
-        },
-        {
-          _id: '8',
-          drillId: { _id: 'drill7', title: 'Database Design', difficulty: 'hard' },
-          score: 5,
-          totalQuestions: 10,
-          timeSpent: 720,
-          createdAt: new Date(Date.now() - 691200000).toISOString()
-        }
-      ];
-      
-      // Check for real API attempts first
       try {
-        const response = await fetch('/api/attempts?limit=20', {
-          credentials: 'include'
-        });
-        if (response.ok) {
-          return response.json();
-        }
-      } catch (err) {
-        console.log('API not available, using demo data');
+        return await getAttempts(50, 1);
+      } catch (error) {
+        console.error('Error fetching attempts:', error);
+        throw error;
       }
-      
-      return demoAttempts;
     }
   });
 
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: "Note",
-        description: "Using demo data for history display.",
-        variant: "default",
-      });
-    }
-  }, [error, toast]);
-
-  // Calculate comprehensive statistics
-  const calculateStats = (attempts: Attempt[]) => {
-    if (!attempts || attempts.length === 0) return null;
-
-    const totalAttempts = attempts.length;
-    const totalTimeSpent = attempts.reduce((sum, attempt) => sum + attempt.timeSpent, 0);
-    const scores = attempts.map(attempt => (attempt.score / attempt.totalQuestions) * 100);
-    const averageScore = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
-    const bestScore = Math.max(...scores);
-    const firstScore = scores[scores.length - 1] || 0;
-    const lastScore = scores[0] || 0;
-    const improvementRate = Math.round(((lastScore - firstScore) / firstScore) * 100) || 0;
-    const completionRate = Math.round((attempts.filter(a => a.score > 0).length / totalAttempts) * 100);
-
-    return {
-      totalAttempts,
-      averageScore,
-      totalTimeSpent,
-      bestScore,
-      improvementRate,
-      completionRate
-    };
-  };
-
-  // Calculate drill-wise statistics
-  const calculateDrillStats = (attempts: Attempt[]) => {
-    const drillMap = new Map();
-    
-    attempts.forEach(attempt => {
-      const drillId = attempt.drillId._id;
-      const score = (attempt.score / attempt.totalQuestions) * 100;
-      
-      if (!drillMap.has(drillId)) {
-        drillMap.set(drillId, {
-          drillTitle: attempt.drillId.title,
-          difficulty: attempt.drillId.difficulty,
-          attempts: 0,
-          totalScore: 0,
-          bestScore: 0,
-          scores: []
-        });
+  // Fetch attempt statistics
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
+    queryKey: ['attemptStats'],
+    queryFn: async () => {
+      try {
+        return await getAttemptStats();
+      } catch (error) {
+        console.error('Error fetching attempt stats:', error);
+        throw error;
       }
-      
-      const drill = drillMap.get(drillId);
-      drill.attempts += 1;
-      drill.totalScore += score;
-      drill.bestScore = Math.max(drill.bestScore, score);
-      drill.scores.push(score);
-    });
-    
-    return Array.from(drillMap.values()).map(drill => ({
-      drillTitle: drill.drillTitle,
-      difficulty: drill.difficulty,
-      attempts: drill.attempts,
-      averageScore: Math.round(drill.totalScore / drill.attempts),
-      bestScore: Math.round(drill.bestScore)
-    }));
-  };
+    }
+  });
 
-  const stats = attempts ? calculateStats(attempts) : null;
-  const drillStats = attempts ? calculateDrillStats(attempts) : [];
+  const attempts = attemptsData?.attempts || [];
+  const isLoading = attemptsLoading || statsLoading;
+  const error = attemptsError || statsError;
 
   // Prepare data for performance charts
-  const performanceData = attempts ? attempts.map((attempt: Attempt) => ({
+  const performanceData = attempts.map((attempt: Attempt) => ({
     date: attempt.createdAt,
-    score: Math.round((attempt.score / attempt.totalQuestions) * 100),
+    score: attempt.score,
     timeSpent: attempt.timeSpent,
     difficulty: attempt.drillId.difficulty
-  })).reverse() : [];
+  })).reverse();
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -231,6 +90,24 @@ const History = () => {
         return 'bg-gray-100 text-gray-800 border-gray-300';
     }
   };
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Error Loading History</h1>
+            <p className="text-muted-foreground mb-6">
+              Failed to load your practice history. Please try again later.
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -339,8 +216,8 @@ const History = () => {
                     <Skeleton className="h-64 w-full" />
                   </CardContent>
                 </Card>
-              ) : drillStats.length > 0 ? (
-                <DrillPerformanceChart drillStats={drillStats} />
+              ) : stats && stats.drillStats && stats.drillStats.length > 0 ? (
+                <DrillPerformanceChart drillStats={stats.drillStats} />
               ) : (
                 <Card className="text-center py-12">
                   <CardContent>
@@ -383,7 +260,7 @@ const History = () => {
                 ))
               ) : attempts && attempts.length > 0 ? (
                 attempts.map((attempt: Attempt, index: number) => {
-                  const percentage = Math.round((attempt.score / attempt.totalQuestions) * 100);
+                  const percentage = attempt.score;
                   
                   return (
                     <Card 
@@ -425,7 +302,7 @@ const History = () => {
                           <div className="text-right space-y-3">
                             <div>
                               <div className={`text-2xl font-bold ${getScoreColor(percentage)}`}>
-                                {attempt.score}/{attempt.totalQuestions}
+                                {attempt.correctAnswers}/{attempt.totalQuestions}
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 {percentage}%

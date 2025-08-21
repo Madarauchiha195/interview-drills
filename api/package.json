@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "build": "echo 'No build step required for Node.js'",
+    "test": "echo 'No tests configured yet'",
+    "lint": "echo 'No linting configured yet'"
   },
   "dependencies": {
     "axios": "^1.11.0",
@@ -24,9 +27,12 @@
     "nodemon": "^3.1.10"
   },
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend API for Interview Drills application",
   "main": "server.js",
-  "keywords": [],
+  "keywords": ["interview", "drills", "api", "nodejs", "express", "mongodb"],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
