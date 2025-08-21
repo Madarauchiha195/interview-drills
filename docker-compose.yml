@@ -1,0 +1,51 @@
+
+services:
+  api:
+    build: ./api
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./api/.env
+    depends_on:
+      - mongo
+    volumes:
+      - ./api:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
+
+  web:
+    build: 
+      context: ./web
+      dockerfile: Dockerfile.dev
+    environment:
+      - VITE_API_BASE_URL=http://api:4000
+    # Pick the port to match your framework
+    ports:
+      - "5173:5173"   # Vite
+      # - "3000:3000" # Next.js
+    env_file:
+      - ./web/.env
+    volumes:
+      - ./web:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
+
+  mongo:
+    image: mongo:6
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+
+volumes:
+  mongo_data:

@@ -1,68 +1,182 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* Educational Platform Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
+@layer base {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    /* Educational Platform Colors */
+    --background: 0 0% 100%;
+    --foreground: 220 9% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 9% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 9% 20%;
+
+    /* Primary Educational Blue */
+    --primary: 220 70% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Subtle Secondary */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 9% 20%;
+
+    /* Muted Tones */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 45%;
+
+    /* Accent for Interactive Elements */
+    --accent: 220 14% 96%;
+    --accent-foreground: 220 9% 20%;
+
+    /* Destructive for Errors */
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border and Input */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 220 70% 50%;
+
+    --radius: 0.75rem;
+
+    /* Custom Educational Tokens */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    /* Difficulty Colors */
+    --difficulty-easy: 142 76% 36%;
+    --difficulty-medium: 38 92% 50%;
+    --difficulty-hard: 0 72% 50%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 220 9% 20%;
+    --sidebar-primary: 220 70% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 220 9% 20%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 220 70% 50%;
   }
-  a:hover {
-    color: #747bff;
+
+  .dark {
+    --background: 220 15% 8%;
+    --foreground: 220 14% 95%;
+
+    --card: 220 15% 10%;
+    --card-foreground: 220 14% 95%;
+
+    --popover: 220 15% 10%;
+    --popover-foreground: 220 14% 95%;
+
+    --primary: 220 70% 60%;
+    --primary-foreground: 220 15% 8%;
+
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 220 14% 95%;
+
+    --muted: 220 15% 15%;
+    --muted-foreground: 220 14% 65%;
+
+    --accent: 220 15% 15%;
+    --accent-foreground: 220 14% 95%;
+
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 220 70% 60%;
+
+    --success: 142 76% 46%;
+    --warning: 38 92% 60%;
+    --info: 217 91% 70%;
+
+    --sidebar-background: 220 15% 6%;
+    --sidebar-foreground: 220 14% 95%;
+    --sidebar-primary: 220 70% 60%;
+    --sidebar-primary-foreground: 220 15% 8%;
+    --sidebar-accent: 220 15% 12%;
+    --sidebar-accent-foreground: 220 14% 95%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 220 70% 60%;
   }
-  button {
-    background-color: #f9f9f9;
+}
+
+@layer base {
+  * {
+    @apply border-border;
   }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+/* Custom Component Classes */
+@layer components {
+  .difficulty-easy {
+    @apply bg-green-50 text-green-700 border-green-200;
+  }
+  
+  .difficulty-medium {
+    @apply bg-yellow-50 text-yellow-700 border-yellow-200;
+  }
+  
+  .difficulty-hard {
+    @apply bg-red-50 text-red-700 border-red-200;
+  }
+
+  .glass-card {
+    @apply bg-card/50 backdrop-blur-sm border border-border/50;
+  }
+
+  .educational-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%);
+  }
+}
+
+/* Custom Animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }
