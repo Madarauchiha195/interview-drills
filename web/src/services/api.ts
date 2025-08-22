@@ -226,5 +226,5 @@ export async function getAttempt(id: string): Promise<Attempt> {
 // =====================
 export function googleAuthUrl() {
   const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
-  return `${base}/auth/google`;
+  return `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
 }
