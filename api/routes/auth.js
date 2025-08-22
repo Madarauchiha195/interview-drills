@@ -22,9 +22,9 @@ router.get("/google", (req, res) => {
 router.get("/google/callback", async (req, res) => {
   const code = req.query.code;
   if (!code) {
-    return res.status(400).json({ 
-      code: "BAD_REQUEST", 
-      message: "Missing authorization code" 
+    return res.status(400).json({
+      code: "BAD_REQUEST",
+      message: "Missing authorization code",
     });
   }
 
@@ -39,15 +39,17 @@ router.get("/google/callback", async (req, res) => {
         redirect_uri: process.env.GOOGLE_CALLBACK_URL,
         grant_type: "authorization_code",
       }).toString(),
-      { 
-        headers: { 
-          "Content-Type": "application/x-www-form-urlencoded" 
-        } 
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
       }
     );
 
     const id_token = tokenRes.data.id_token;
-    const payload = JSON.parse(Buffer.from(id_token.split(".")[1], "base64").toString());
+    const payload = JSON.parse(
+      Buffer.from(id_token.split(".")[1], "base64").toString()
+    );
     const { email, name, picture } = payload;
 
     if (!email) {
@@ -59,12 +61,11 @@ router.get("/google/callback", async (req, res) => {
     if (!user) {
       user = await User.create({
         email,
-        name: name || email.split('@')[0],
+        name: name || email.split("@")[0],
         picture,
         providers: ["google"],
       });
     } else {
-      // Update existing user info
       user.name = name || user.name;
       user.picture = picture || user.picture;
       if (!user.providers.includes("google")) {
@@ -75,64 +76,66 @@ router.get("/google/callback", async (req, res) => {
 
     // Create JWT
     const token = jwt.sign(
-      { 
-        id: user._id, 
+      {
+        id: user._id,
         email: user.email,
-        username: user.username 
+        username: user.username,
       },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // Store JWT in cookie
-    res.cookie(process.env.SESSION_COOKIE_NAME, token, {
+    // Store JWT in cookie (cross-site safe)
+    res.cookie(process.env.SESSION_COOKIE_NAME || "session", token, {
       httpOnly: true,
-      secure: process.env.COOKIE_SECURE === "true",
-      sameSite: process.env.COOKIE_SAME_SITE || "lax",
+      secure: true,          // required for SameSite=None
+      sameSite: "none",      // allow cross-site cookies
       maxAge: 7 * 24 * 3600 * 1000, // 7 days
-      path: '/',
+      path: "/",
     });
 
-    // Redirect to frontend
-    const redirectUrl = `${process.env.WEB_ORIGIN || 'http://localhost:5173'}/dashboard`;
+    // Redirect to frontend dashboard
+    const redirectUrl = `${
+      process.env.WEB_ORIGIN || "http://localhost:5173"
+    }/dashboard`;
     return res.redirect(redirectUrl);
-    
   } catch (err) {
     console.error("OAuth error:", err.response?.data || err);
-    
-    // Redirect to frontend with error
-    const errorUrl = `${process.env.WEB_ORIGIN || 'http://localhost:5173'}?error=auth_failed`;
+
+    const errorUrl = `${
+      process.env.WEB_ORIGIN || "http://localhost:5173"
+    }?error=auth_failed`;
     return res.redirect(errorUrl);
   }
 });
 
 // Logout
 router.post("/logout", (req, res) => {
-  res.clearCookie(process.env.SESSION_COOKIE_NAME, {
-    path: '/',
+  res.clearCookie(process.env.SESSION_COOKIE_NAME || "session", {
+    path: "/",
     httpOnly: true,
-    secure: process.env.COOKIE_SECURE === "true",
-    sameSite: process.env.COOKIE_SAME_SITE || "lax"
+    secure: true,
+    sameSite: "none",
   });
   res.json({ success: true, message: "Logged out successfully" });
 });
 
 // Get current auth status
 router.get("/status", (req, res) => {
-  const token = req.cookies?.[process.env.SESSION_COOKIE_NAME];
+  const token = req.cookies?.[process.env.SESSION_COOKIE_NAME || "session"];
   if (!token) {
     return res.json({ authenticated: false });
   }
-  
+
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    res.json({ 
-      authenticated: true, 
-      user: { 
-        id: payload.id, 
+    res.json({
+      authenticated: true,
+      user: {
+        id: payload.id,
         email: payload.email,
-        username: payload.username 
-      } 
+        username: payload.username,
+      },
     });
   } catch (err) {
     res.json({ authenticated: false });
