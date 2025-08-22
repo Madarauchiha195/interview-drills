@@ -86,12 +86,12 @@ router.get("/google/callback", async (req, res) => {
     );
 
     // Store JWT in cookie (cross-site safe)
-    res.cookie(process.env.SESSION_COOKIE_NAME || "session", token, {
-      httpOnly: true,
-      secure: true,          // required for SameSite=None
-      sameSite: "none",      // allow cross-site cookies
-      maxAge: 7 * 24 * 3600 * 1000, // 7 days
-      path: "/",
+    res.cookie(process.env.SESSION_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: true,     // must be true on Render (HTTPS)
+    sameSite: "none", // critical for cross-site cookie sharing
+    maxAge: 7 * 24 * 3600 * 1000,
+    path: "/",
     });
 
     // Redirect to frontend dashboard
