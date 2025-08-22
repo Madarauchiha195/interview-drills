@@ -1,30 +1,20 @@
+# Use Node.js LTS Alpine for small image
 FROM node:20-alpine
 
-# Install curl for health checks
-RUN apk add --no-cache curl
-
+# Set working directory
 WORKDIR /usr/src/app
 
-# Copy package files
+# Copy package.json and lock file first
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install dependencies (production only)
+RUN npm install --omit=dev && npm cache clean --force
 
-# Copy source code
+# Copy the rest of the code
 COPY . .
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
-USER nodejs
-
-# Expose port
+# Expose API port
 EXPOSE 4000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:4000/api/health || exit 1
-
-# Start command based on environment
+# Run the server
 CMD ["npm", "start"]
