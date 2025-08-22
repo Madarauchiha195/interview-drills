@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
-import { Search, Filter, BookOpen, Target, Clock, TrendingUp } from 'lucide-react';
-import { drillsData } from '@/data/drillsData';
+import { Search, Filter, BookOpen, Target, Clock, TrendingUp, AlertCircle } from 'lucide-react';
+import { getDrills } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface Drill {
   _id: string;
@@ -26,63 +27,7 @@ interface Stats {
   totalTimeSpent: number;
 }
 
-// Demo data for frontend functionality
-const demoDrills: Drill[] = [
-  {
-    _id: '1',
-    title: 'JavaScript Fundamentals',
-    description: 'Test your knowledge of JavaScript basics including variables, functions, and control structures.',
-    difficulty: 'easy',
-    tags: ['JavaScript', 'Programming', 'Fundamentals'],
-    estimatedTime: 15,
-    questionsCount: 5
-  },
-  {
-    _id: '2',
-    title: 'React Components',
-    description: 'Practice building and understanding React components, props, and state management.',
-    difficulty: 'medium',
-    tags: ['React', 'Components', 'Frontend'],
-    estimatedTime: 25,
-    questionsCount: 5
-  },
-  {
-    _id: '3',
-    title: 'Advanced Algorithms',
-    description: 'Challenge yourself with complex algorithmic problems and data structures.',
-    difficulty: 'hard',
-    tags: ['Algorithms', 'Data Structures', 'Problem Solving'],
-    estimatedTime: 45,
-    questionsCount: 5
-  },
-  {
-    _id: '4',
-    title: 'CSS Grid & Flexbox',
-    description: 'Master modern CSS layout techniques with Grid and Flexbox.',
-    difficulty: 'medium',
-    tags: ['CSS', 'Layout', 'Frontend'],
-    estimatedTime: 20,
-    questionsCount: 5
-  },
-  {
-    _id: '5',
-    title: 'Node.js Basics',
-    description: 'Learn the fundamentals of server-side JavaScript with Node.js.',
-    difficulty: 'easy',
-    tags: ['Node.js', 'Backend', 'JavaScript'],
-    estimatedTime: 18,
-    questionsCount: 5
-  },
-  {
-    _id: '6',
-    title: 'Database Design',
-    description: 'Practice designing efficient database schemas and relationships.',
-    difficulty: 'hard',
-    tags: ['Database', 'SQL', 'Design'],
-    estimatedTime: 35,
-    questionsCount: 5
-  }
-];
+// No demo data needed - we'll use the API data
 
 const demoStats: Stats = {
   totalAttempts: 12,
@@ -93,15 +38,35 @@ const demoStats: Stats = {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [drills, setDrills] = useState<Drill[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
+    fetchDrills();
   }, []);
+
+  const fetchDrills = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const drillsData = await getDrills();
+      setDrills(drillsData);
+    } catch (err) {
+      console.error('Error loading drills:', err);
+      setError('Failed to load drills. Please try again.');
+      toast({
+        title: "Error",
+        description: "Failed to load drills. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Determine if user is new or returning
   const isNewUser = () => {
@@ -139,10 +104,10 @@ const Dashboard = () => {
     }
   };
 
-  // Use the new drill data
-  const filteredDrills = drillsData.filter((drill) => {
+  // Use the drills data from API
+  const filteredDrills = drills.filter((drill) => {
     const matchesSearch = drill.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         drill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (drill.description && drill.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          drill.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesDifficulty = selectedDifficulty === 'all' || drill.difficulty === selectedDifficulty;
@@ -161,7 +126,7 @@ const Dashboard = () => {
     const totalAttempts = attempts.length;
     const totalScore = attempts.reduce((sum: number, attempt: any) => sum + attempt.score, 0);
     const totalPossible = attempts.reduce((sum: number, attempt: any) => {
-      const drill = drillsData.find(d => d._id === attempt.drillId);
+      const drill = drills.find(d => d._id === attempt.drillId);
       return sum + (drill?.totalPoints || 50);
     }, 0);
     const averageScore = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 100) : 0;
@@ -318,6 +283,15 @@ const Dashboard = () => {
                 </Card>
               ))}
             </div>
+          ) : error ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Error Loading Drills</h3>
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <Button onClick={fetchDrills}>Try Again</Button>
+              </CardContent>
+            </Card>
           ) : filteredDrills && filteredDrills.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredDrills.map((drill, index: number) => (

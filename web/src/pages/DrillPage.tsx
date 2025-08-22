@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import TimerDisplay from '@/components/TimerDisplay';
 import ScoreDisplay from '@/components/ScoreDisplay';
+import DetailedScorecard from '@/components/DetailedScorecard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -173,12 +174,17 @@ const DrillPage = () => {
               </Button>
             </div>
 
-            <ScoreDisplay 
+            <DetailedScorecard 
               score={result.score}
               totalQuestions={result.totalQuestions}
               timeSpent={result.timeSpent}
               correctAnswers={result.correctAnswers}
+              incorrectAnswers={result.totalQuestions - result.correctAnswers}
               totalPoints={drill.totalPoints || result.totalQuestions}
+              drillTitle={drill.title}
+              drillCategory={drill.category}
+              drillDifficulty={drill.difficulty}
+              attemptId={result.attemptId}
             />
 
             <div className="flex gap-4 justify-center">
@@ -309,14 +315,20 @@ const DrillPage = () => {
                 onValueChange={(value) => handleAnswerChange(currentQ.id, value)}
                 className="space-y-3"
               >
-                {currentQ.options?.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <RadioGroupItem value={option.id} id={option.id} />
-                    <Label htmlFor={option.id} className="flex-1 cursor-pointer">
-                      {option.text}
-                    </Label>
+                {currentQ.options && currentQ.options.length > 0 ? (
+                  currentQ.options.map((option) => (
+                    <div key={option.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <RadioGroupItem value={option.id} id={option.id} />
+                      <Label htmlFor={option.id} className="flex-1 cursor-pointer">
+                        {option.text}
+                      </Label>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-3 border rounded-lg bg-muted/20">
+                    <p className="text-muted-foreground">No options available for this question. Please contact support.</p>
                   </div>
-                ))}
+                )}
               </RadioGroup>
 
               {/* Navigation */}

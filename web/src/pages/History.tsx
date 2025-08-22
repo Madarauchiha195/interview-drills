@@ -3,6 +3,7 @@ import Layout from '@/components/Layout';
 import PerformanceChart from '@/components/PerformanceChart';
 import StatisticsCards from '@/components/StatisticsCards';
 import DrillPerformanceChart from '@/components/DrillPerformanceChart';
+import ProgressVisualization from '@/components/ProgressVisualization';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,20 @@ const History = () => {
     timeSpent: attempt.timeSpent,
     difficulty: attempt.drillId.difficulty
   })).reverse();
+  
+  // Prepare data for progress visualization
+  const progressData = attempts.map((attempt: Attempt) => ({
+    _id: attempt._id,
+    drillId: attempt.drillId._id,
+    drillTitle: attempt.drillId.title,
+    score: attempt.score,
+    totalQuestions: attempt.totalQuestions,
+    correctAnswers: attempt.correctAnswers,
+    timeSpent: attempt.timeSpent,
+    createdAt: attempt.createdAt,
+    category: attempt.drillId.category,
+    difficulty: attempt.drillId.difficulty
+  }));
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -125,11 +140,15 @@ const History = () => {
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview" className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
+                <BarChart3 className="h-4 w-4" />
                 Overview
               </TabsTrigger>
+              <TabsTrigger value="progress" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Progress
+              </TabsTrigger>
               <TabsTrigger value="performance" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
+                <TrendingUp className="h-4 w-4" />
                 Performance
               </TabsTrigger>
               <TabsTrigger value="drills" className="flex items-center gap-2">
@@ -181,6 +200,33 @@ const History = () => {
               )}
             </TabsContent>
 
+            {/* Progress Tab */}
+            <TabsContent value="progress" className="space-y-6">
+              {isLoading ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <Skeleton className="h-64 w-full" />
+                  </CardContent>
+                </Card>
+              ) : attempts && attempts.length > 0 ? (
+                <ProgressVisualization attempts={progressData} />
+              ) : (
+                <Card className="text-center py-12">
+                  <CardContent>
+                    <div className="space-y-4">
+                      <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto" />
+                      <div>
+                        <h3 className="text-lg font-semibold mb-2">No progress data</h3>
+                        <p className="text-muted-foreground">
+                          Complete more drills to see your progress visualization.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+            
             {/* Performance Tab */}
             <TabsContent value="performance" className="space-y-6">
               {isLoading ? (

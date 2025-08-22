@@ -1,8 +1,8 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Target, Clock } from 'lucide-react';
+import { Trophy, Target, Clock, CheckCircle, XCircle, Award } from 'lucide-react';
 
 interface ScoreDisplayProps {
   score: number;
@@ -11,6 +11,10 @@ interface ScoreDisplayProps {
   feedback?: string[];
   correctAnswers?: number;
   totalPoints?: number;
+  incorrectAnswers?: number;
+  drillTitle?: string;
+  drillCategory?: string;
+  drillDifficulty?: string;
 }
 
 const ScoreDisplay = ({ 
@@ -19,7 +23,11 @@ const ScoreDisplay = ({
   timeSpent, 
   feedback, 
   correctAnswers, 
-  totalPoints 
+  totalPoints,
+  incorrectAnswers,
+  drillTitle,
+  drillCategory,
+  drillDifficulty
 }: ScoreDisplayProps) => {
   const maxPoints = totalPoints || totalQuestions * 10;
   const percentage = Math.round((score / maxPoints) * 100);
@@ -48,7 +56,8 @@ const ScoreDisplay = ({
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <Trophy className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Quiz Complete!</CardTitle>
+          <CardTitle className="text-2xl">Drill Complete!</CardTitle>
+          {drillTitle && <CardDescription className="text-lg mt-2">{drillTitle}</CardDescription>}
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Score */}
@@ -75,19 +84,57 @@ const ScoreDisplay = ({
 
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 pt-4">
-            <div className="flex items-center justify-center space-x-2 p-3 bg-muted/50 rounded-lg">
-              <Target className="h-4 w-4 text-muted-foreground" />
+            {drillCategory && drillDifficulty && (
+              <div className="col-span-2 flex justify-center space-x-2 mb-2">
+                <Badge variant="outline" className="text-xs">{drillCategory}</Badge>
+                <Badge 
+                  variant={drillDifficulty === 'easy' ? 'secondary' : 
+                          drillDifficulty === 'medium' ? 'default' : 'destructive'} 
+                  className="text-xs"
+                >
+                  {drillDifficulty.charAt(0).toUpperCase() + drillDifficulty.slice(1)}
+                </Badge>
+              </div>
+            )}
+            <div className="flex items-center justify-center space-x-2 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
               <div className="text-center">
                 <div className="font-semibold">{correctAnswers || score}</div>
                 <div className="text-xs text-muted-foreground">Correct</div>
               </div>
             </div>
-            {timeSpent && (
-              <div className="flex items-center justify-center space-x-2 p-3 bg-muted/50 rounded-lg">
-                <Clock className="h-4 w-4 text-muted-foreground" />
+            {incorrectAnswers !== undefined ? (
+              <div className="flex items-center justify-center space-x-2 p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                 <div className="text-center">
-                  <div className="font-semibold">{Math.round(timeSpent / 60)}m</div>
-                  <div className="text-xs text-muted-foreground">Time</div>
+                  <div className="font-semibold">{incorrectAnswers}</div>
+                  <div className="text-xs text-muted-foreground">Incorrect</div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center space-x-2 p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <div className="text-center">
+                  <div className="font-semibold">{totalQuestions - (correctAnswers || 0)}</div>
+                  <div className="text-xs text-muted-foreground">Incorrect</div>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-center space-x-2 p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+              <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <div className="text-center">
+                <div className="font-semibold">{totalQuestions}</div>
+                <div className="text-xs text-muted-foreground">Total Questions</div>
+              </div>
+            </div>
+            
+            {timeSpent && (
+              <div className="flex items-center justify-center space-x-2 p-3 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
+                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <div className="text-center">
+                  <div className="font-semibold">{Math.floor(timeSpent / 60)}m {timeSpent % 60}s</div>
+                  <div className="text-xs text-muted-foreground">Time Spent</div>
                 </div>
               </div>
             )}

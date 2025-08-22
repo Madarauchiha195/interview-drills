@@ -36,11 +36,12 @@ export const DrillSchema = DrillListItemSchema.extend({
     options: z.array(z.object({
       id: z.string(),
       text: z.string()
-    })),
-    correctAnswer: z.string(),
-    points: z.number().default(1),
+    })).optional(),
+    correctAnswer: z.string().optional(),
+    points: z.number().default(1).optional(),
     explanation: z.string().optional(),
-    keywords: z.array(z.string()).optional()
+    keywords: z.array(z.string()).optional(),
+    _id: z.string().optional()
   })),
   instructions: z.string().optional(),
   category: z.string().optional(),
