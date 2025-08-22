@@ -64,21 +64,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUsername = async (username: string) => {
-    const updated = await updateMeUsername(username);
-    setUser(updated);
+    try {
+      const updated = await updateMeUsername(username);
+      setUser(updated);
+      console.log("Username updated successfully:", updated.username);
+      return updated;
+    } catch (error) {
+      console.error("Failed to update username:", error);
+      throw error;
+    }
   };
 
   const updateName = async (name: string) => {
-    const updated = await updateMeName(name);
-    setUser(updated);
+    try {
+      const updated = await updateMeName(name);
+      setUser(updated);
+      console.log("Name updated successfully:", updated.name);
+      return updated;
+    } catch (error) {
+      console.error("Failed to update name:", error);
+      throw error;
+    }
   };
 
   const refreshUser = async () => {
     try {
       const updated = await getMe();
       setUser(updated);
+      console.log("User data refreshed successfully");
+      return updated;
     } catch (err) {
       console.error("Failed to refresh user:", err);
+      throw err;
     }
   };
 

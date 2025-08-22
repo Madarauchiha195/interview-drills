@@ -10,6 +10,7 @@ import drillsRouter from './routes/drills.js';
 import attemptsRouter from './routes/attempts.js';
 import authRouter from './routes/auth.js';
 import meRouter from './routes/me.js';
+import cacheStatsRouter from './routes/cache-stats.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -60,6 +61,7 @@ app.use('/auth', authRouter);
 app.use('/api/drills', drillsRouter);
 app.use('/api/attempts', attemptsRouter);
 app.use('/api/me', meRouter);
+app.use('/api/cache-stats', cacheStatsRouter);
 
 // 404 handler
 app.use('*', (req, res) => {

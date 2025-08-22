@@ -2,6 +2,8 @@ import express from 'express';
 import Attempt from '../models/Attempt.js';
 import Drill from '../models/Drill.js';
 import { requireAuth } from '../middlewares/auth.js';
+import { validate } from '../middlewares/validate.js';
+import { submitAttemptSchema, attemptIdSchema } from '../validation/attempt.js';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -24,15 +26,9 @@ function computeScore(drill, answers) {
 }
 
 // Submit a new drill attempt
-router.post('/', requireAuth, async (req, res, next) => {
+router.post('/', requireAuth, validate(submitAttemptSchema), async (req, res, next) => {
   try {
     const { drillId, answers, timeSpent } = req.body;
-    
-    if (!drillId || !answers) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: drillId and answers' 
-      });
-    }
 
     // Find the drill
     const drill = await Drill.findById(drillId);
@@ -224,7 +220,7 @@ router.get('/stats', requireAuth, async (req, res, next) => {
 });
 
 // Get a specific attempt
-router.get('/:id', requireAuth, async (req, res, next) => {
+router.get('/:id', requireAuth, validate(attemptIdSchema, 'params'), async (req, res, next) => {
   try {
     const attempt = await Attempt.findById(req.params.id)
       .populate('drillId', 'title difficulty questions')

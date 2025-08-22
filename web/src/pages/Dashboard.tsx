@@ -103,6 +103,42 @@ const Dashboard = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Determine if user is new or returning
+  const isNewUser = () => {
+    if (!user?.createdAt) return true;
+    
+    const userCreatedAt = new Date(user.createdAt);
+    const now = new Date();
+    const daysSinceCreation = Math.floor((now.getTime() - userCreatedAt.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Consider user "new" if they created account within last 7 days
+    return daysSinceCreation <= 7;
+  };
+
+  // Get dynamic greeting message
+  const getGreeting = () => {
+    if (!user) return 'Welcome! 👋';
+    
+    const displayName = user.username || user.name || user.email.split('@')[0];
+    
+    if (isNewUser()) {
+      return `Welcome, ${displayName}! 👋`;
+    } else {
+      return `Welcome back, ${displayName}! 👋`;
+    }
+  };
+
+  // Get greeting subtitle
+  const getGreetingSubtitle = () => {
+    if (!user) return 'Ready to start your learning journey?';
+    
+    if (isNewUser()) {
+      return 'Ready to start your learning journey?';
+    } else {
+      return 'Ready to continue your learning journey?';
+    }
+  };
+
   // Use the new drill data
   const filteredDrills = drillsData.filter((drill) => {
     const matchesSearch = drill.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -149,10 +185,10 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="animate-fade-in-up">
           <h1 className="text-3xl font-bold mb-2">
-            Welcome back, {user?.name || user?.email}! 👋
+            {getGreeting()}
           </h1>
           <p className="text-muted-foreground text-lg">
-            Ready to continue your learning journey?
+            {getGreetingSubtitle()}
           </p>
         </div>
 
