@@ -159,7 +159,13 @@ const sampleDrills = [
 async function seedDatabase() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGO_URI);
+    const dbName = process.env.MONGO_DB_NAME || 'upivot';
+    await mongoose.connect(process.env.MONGO_URI, {
+      dbName: dbName,
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
     console.log('✅ Connected to MongoDB');
 
     // Clear existing data

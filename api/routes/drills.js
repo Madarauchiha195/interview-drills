@@ -12,10 +12,12 @@ router.get("/", async (req, res, next) => {
     if (cached) return res.json(cached);
 
     const drills = await Drill.find({}, { questions: 0 }).lean();
+    console.log(`[DRILLS] Found ${drills.length} drills in database`);
     setCache("drills_list", drills, Number(process.env.CACHE_TTL_SECONDS || 60));
 
     res.json(drills);
   } catch (err) {
+    console.error('[DRILLS] Error fetching drills:', err);
     next(err);
   }
 });
