@@ -214,5 +214,147 @@ export const drillsData: Drill[] = [
         points: 10
       }
     ]
+  },
+  {
+    _id: '4',
+    title: 'Python Fundamentals',
+    description: 'Master Python basics including data types, functions, and control structures.',
+    difficulty: 'easy',
+    tags: ['Python', 'Programming', 'Fundamentals'],
+    timeLimit: 15,
+    totalPoints: 50,
+    questions: [
+      {
+        id: 'py1',
+        prompt: 'Which of the following is the correct way to define a function in Python?',
+        options: [
+          { id: 'a', text: 'function myFunc():' },
+          { id: 'b', text: 'def myFunc():' },
+          { id: 'c', text: 'define myFunc():' },
+          { id: 'd', text: 'func myFunc():' }
+        ],
+        correctAnswer: 'b',
+        points: 10
+      },
+      {
+        id: 'py2',
+        prompt: 'What is the output of: print(type([1, 2, 3]))?',
+        options: [
+          { id: 'a', text: '<class \'array\'>' },
+          { id: 'b', text: '<class \'list\'>' },
+          { id: 'c', text: '<class \'tuple\'>' },
+          { id: 'd', text: '<class \'dict\'>' }
+        ],
+        correctAnswer: 'b',
+        points: 10
+      },
+      {
+        id: 'py3',
+        prompt: 'Which method is used to add an element to the end of a list in Python?',
+        options: [
+          { id: 'a', text: 'add()' },
+          { id: 'b', text: 'append()' },
+          { id: 'c', text: 'insert()' },
+          { id: 'd', text: 'push()' }
+        ],
+        correctAnswer: 'b',
+        points: 10
+      },
+      {
+        id: 'py4',
+        prompt: 'What is the correct way to create a dictionary in Python?',
+        options: [
+          { id: 'a', text: 'dict = [key: value]' },
+          { id: 'b', text: 'dict = {key: value}' },
+          { id: 'c', text: 'dict = (key: value)' },
+          { id: 'd', text: 'dict = <key: value>' }
+        ],
+        correctAnswer: 'b',
+        points: 10
+      },
+      {
+        id: 'py5',
+        prompt: 'Which keyword is used to handle exceptions in Python?',
+        options: [
+          { id: 'a', text: 'catch' },
+          { id: 'b', text: 'except' },
+          { id: 'c', text: 'handle' },
+          { id: 'd', text: 'error' }
+        ],
+        correctAnswer: 'b',
+        points: 10
+      }
+    ]
+  },
+  {
+    _id: '5',
+    title: 'SQL Database Queries',
+    description: 'Practice essential SQL queries including SELECT, JOIN, and data manipulation.',
+    difficulty: 'medium',
+    tags: ['SQL', 'Database', 'Queries'],
+    timeLimit: 20,
+    totalPoints: 50,
+    questions: [
+      {
+        id: 'sql1',
+        prompt: 'Which SQL statement is used to extract data from a database?',
+        options: [
+          { id: 'a', text: 'GET' },
+          { id: 'b', text: 'SELECT' },
+          { id: 'c', text: 'EXTRACT' },
+          { id: 'd', text: 'OPEN' }
+        ],
+        correctAnswer: 'b',
+        points: 10
+      },
+      {
+        id: 'sql2',
+        prompt: 'Which JOIN returns all records from both tables?',
+        options: [
+          { id: 'a', text: 'INNER JOIN' },
+          { id: 'b', text: 'LEFT JOIN' },
+          { id: 'c', text: 'RIGHT JOIN' },
+          { id: 'd', text: 'FULL OUTER JOIN' }
+        ],
+        correctAnswer: 'd',
+        points: 10
+      },
+      {
+        id: 'sql3',
+        prompt: 'Which clause is used to filter records in SQL?',
+        options: [
+          { id: 'a', text: 'FILTER' },
+          { id: 'b', text: 'WHERE' },
+          { id: 'c', text: 'HAVING' },
+          { id: 'd', text: 'CONDITION' }
+        ],
+        correctAnswer: 'b',
+        points: 10
+      },
+      {
+        id: 'sql4',
+        prompt: 'Which function is used to count the number of rows in SQL?',
+        options: [
+          { id: 'a', text: 'COUNT()' },
+          { id: 'b', text: 'SUM()' },
+          { id: 'c', text: 'TOTAL()' },
+          { id: 'd', text: 'NUMBER()' }
+        ],
+        correctAnswer: 'a',
+        points: 10
+      },
+      {
+        id: 'sql5',
+        prompt: 'Which statement is used to create a new table in SQL?',
+        options: [
+          { id: 'a', text: 'NEW TABLE' },
+          { id: 'b', text: 'CREATE TABLE' },
+          { id: 'c', text: 'MAKE TABLE' },
+          { id: 'd', text: 'ADD TABLE' }
+        ],
+        correctAnswer: 'b',
+        points: 10
+      }
+    ]
   }
 ];

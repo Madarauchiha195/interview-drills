@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { Search, Filter, BookOpen, Target, Clock, TrendingUp, AlertCircle } from 'lucide-react';
-import { getDrills } from '@/services/api';
+import { drillsData } from '@/data/drillsData';
 import { useToast } from '@/hooks/use-toast';
 
 interface Drill {
@@ -46,15 +46,24 @@ const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDrills();
+    loadDrills();
   }, []);
 
-  const fetchDrills = async () => {
+  const loadDrills = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const drillsData = await getDrills();
-      setDrills(drillsData);
+      // Transform local drill data to match expected interface
+      const transformedDrills = drillsData.map(drill => ({
+        _id: drill._id,
+        title: drill.title,
+        description: drill.description,
+        difficulty: drill.difficulty,
+        tags: drill.tags,
+        estimatedTime: drill.timeLimit,
+        questionsCount: drill.questions.length
+      }));
+      setDrills(transformedDrills);
     } catch (err) {
       console.error('Error loading drills:', err);
       setError('Failed to load drills. Please try again.');
@@ -118,21 +127,22 @@ const Dashboard = () => {
   // Calculate dynamic stats from localStorage
   const getStats = () => {
     const attempts = JSON.parse(localStorage.getItem('drillAttempts') || '[]');
-    
+
     if (attempts.length === 0) {
       return demoStats; // Fallback to demo stats if no attempts
     }
-    
+
     const totalAttempts = attempts.length;
     const totalScore = attempts.reduce((sum: number, attempt: any) => sum + attempt.score, 0);
     const totalPossible = attempts.reduce((sum: number, attempt: any) => {
-      const drill = drills.find(d => d._id === attempt.drillId);
-      return sum + (drill?.totalPoints || 50);
+      // Find the original drill data to get totalPoints
+      const originalDrill = drillsData.find(d => d._id === attempt.drillId);
+      return sum + (originalDrill?.totalPoints || 50);
     }, 0);
     const averageScore = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 100) : 0;
     const completedDrills = new Set(attempts.map((a: any) => a.drillId)).size;
     const totalTimeSpent = attempts.reduce((sum: number, attempt: any) => sum + attempt.timeSpent, 0);
-    
+
     return {
       totalAttempts,
       averageScore,
@@ -289,7 +299,7 @@ const Dashboard = () => {
                 <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Error Loading Drills</h3>
                 <p className="text-muted-foreground mb-4">{error}</p>
-                <Button onClick={fetchDrills}>Try Again</Button>
+                <Button onClick={loadDrills}>Try Again</Button>
               </CardContent>
             </Card>
           ) : filteredDrills && filteredDrills.length > 0 ? (

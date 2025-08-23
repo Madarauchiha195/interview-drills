@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, ChevronRight, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTimer } from '@/hooks/useTimer';
-import { getDrill, submitAttempt } from '@/services/api';
+import { drillsData } from '@/data/drillsData';
 import { Drill } from '@/types/drill';
 
 const DrillPage = () => {
@@ -31,9 +31,10 @@ const DrillPage = () => {
   const [showReview, setShowReview] = useState(false);
   const [startTime] = useState(Date.now());
 
-  // Timer setup (15 minutes = 900 seconds)
+  // Timer setup - will be updated when drill loads
+  const [timerDuration, setTimerDuration] = useState(900); // Default 15 minutes
   const timer = useTimer({
-    initialTime: 900,
+    initialTime: timerDuration,
     onTimeUp: () => {
       toast({
         title: "Time's Up!",
@@ -42,7 +43,7 @@ const DrillPage = () => {
       });
       handleSubmit();
     },
-    autoStart: true
+    autoStart: false // Start manually after drill loads
   });
 
   useEffect(() => {
@@ -51,11 +52,19 @@ const DrillPage = () => {
     }
   }, [id]);
 
-  const loadDrill = async () => {
+  const loadDrill = () => {
     try {
       setIsLoading(true);
-      const drillData = await getDrill(id!);
-      setDrill(drillData);
+      // Find drill in local data
+      const drillData = drillsData.find(d => d._id === id);
+      if (drillData) {
+        setDrill(drillData);
+        // Update timer duration and start timer
+        setTimerDuration(drillData.timeLimit * 60); // Convert minutes to seconds
+        timer.start();
+      } else {
+        throw new Error('Drill not found');
+      }
     } catch (error) {
       console.error('Error loading drill:', error);
       toast({
@@ -76,11 +85,11 @@ const DrillPage = () => {
     }));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!drill) return;
 
     const unansweredQuestions = drill.questions.filter(q => !answers[q.id]);
-    
+
     if (unansweredQuestions.length > 0 && timer.timeLeft > 0) {
       toast({
         title: "Incomplete",
@@ -91,32 +100,58 @@ const DrillPage = () => {
     }
 
     setIsSubmitting(true);
-    
+
     try {
       const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-      
-      // Submit attempt to backend
-      const response = await submitAttempt(drill._id, answers, timeSpent);
-      
-      if (response.success) {
-        setResult({
-          score: response.attempt.score,
-          totalQuestions: response.attempt.totalQuestions,
-          correctAnswers: response.attempt.correctAnswers,
-          timeSpent: response.attempt.timeSpent,
-          percentage: response.attempt.score,
-          attemptId: response.attempt._id
-        });
-        
-        timer.pause();
-        
-        toast({
-          title: "Success!",
-          description: `You scored ${response.attempt.score}%!`,
-        });
-      } else {
-        throw new Error('Failed to submit attempt');
-      }
+
+      // Calculate score locally
+      let correctAnswers = 0;
+      let totalScore = 0;
+
+      drill.questions.forEach(question => {
+        const userAnswer = answers[question.id];
+        if (userAnswer === question.correctAnswer) {
+          correctAnswers++;
+          totalScore += question.points;
+        }
+      });
+
+      const percentage = Math.round((totalScore / drill.totalPoints) * 100);
+
+      // Create attempt object
+      const attempt = {
+        _id: `attempt_${Date.now()}`,
+        drillId: drill._id,
+        score: totalScore,
+        totalQuestions: drill.questions.length,
+        correctAnswers,
+        timeSpent,
+        percentage,
+        answers,
+        createdAt: new Date().toISOString(),
+        completed: true
+      };
+
+      // Save to localStorage
+      const existingAttempts = JSON.parse(localStorage.getItem('drillAttempts') || '[]');
+      existingAttempts.push(attempt);
+      localStorage.setItem('drillAttempts', JSON.stringify(existingAttempts));
+
+      setResult({
+        score: totalScore,
+        totalQuestions: drill.questions.length,
+        correctAnswers,
+        timeSpent,
+        percentage,
+        attemptId: attempt._id
+      });
+
+      timer.pause();
+
+      toast({
+        title: "Success!",
+        description: `You scored ${percentage}%!`,
+      });
     } catch (error) {
       console.error('Submit error:', error);
       toast({
@@ -182,7 +217,7 @@ const DrillPage = () => {
               incorrectAnswers={result.totalQuestions - result.correctAnswers}
               totalPoints={drill.totalPoints || result.totalQuestions}
               drillTitle={drill.title}
-              drillCategory={drill.category}
+              drillCategory={drill.tags[0] || 'General'}
               drillDifficulty={drill.difficulty}
               attemptId={result.attemptId}
             />
@@ -227,11 +262,6 @@ const DrillPage = () => {
                           <p>
                             <strong>Correct answer:</strong> {correctOption?.text}
                           </p>
-                          {question.explanation && (
-                            <p className="text-muted-foreground">
-                              <strong>Explanation:</strong> {question.explanation}
-                            </p>
-                          )}
                         </div>
                       </div>
                     );

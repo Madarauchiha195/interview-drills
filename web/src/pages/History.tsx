@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import PerformanceChart from '@/components/PerformanceChart';
 import StatisticsCards from '@/components/StatisticsCards';
@@ -12,52 +12,101 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import { Clock, Target, Calendar, ArrowRight, RotateCcw, TrendingUp, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getAttempts, getAttemptStats } from '@/services/api';
-import { Attempt, AttemptStats } from '@/services/api';
+import { drillsData } from '@/data/drillsData';
 
 const History = () => {
   const { toast } = useToast();
+  const [attempts, setAttempts] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch attempts data
-  const { data: attemptsData, isLoading: attemptsLoading, error: attemptsError } = useQuery({
-    queryKey: ['attempts'],
-    queryFn: async () => {
-      try {
-        return await getAttempts(50, 1);
-      } catch (error) {
-        console.error('Error fetching attempts:', error);
-        throw error;
+  useEffect(() => {
+    loadLocalData();
+  }, []);
+
+  const loadLocalData = () => {
+    try {
+      setIsLoading(true);
+
+      // Get attempts from localStorage
+      const localAttempts = JSON.parse(localStorage.getItem('drillAttempts') || '[]');
+
+      // Transform attempts to match expected format
+      const transformedAttempts = localAttempts.map((attempt: any) => {
+        const drill = drillsData.find(d => d._id === attempt.drillId);
+        return {
+          _id: attempt._id,
+          score: attempt.score,
+          totalQuestions: attempt.totalQuestions,
+          correctAnswers: attempt.correctAnswers,
+          timeSpent: attempt.timeSpent,
+          createdAt: attempt.createdAt,
+          completed: attempt.completed,
+          drillId: {
+            _id: drill?._id || attempt.drillId,
+            title: drill?.title || 'Unknown Drill',
+            difficulty: drill?.difficulty || 'medium',
+            tags: drill?.tags || []
+          }
+        };
+      });
+
+      setAttempts(transformedAttempts);
+
+      // Calculate stats from local attempts
+      if (transformedAttempts.length > 0) {
+        const totalAttempts = transformedAttempts.length;
+        const totalScore = transformedAttempts.reduce((sum: number, attempt: any) => sum + attempt.score, 0);
+        const totalPossible = transformedAttempts.reduce((sum: number, attempt: any) => {
+          const drill = drillsData.find(d => d._id === attempt.drillId._id);
+          return sum + (drill?.totalPoints || 50);
+        }, 0);
+        const averageScore = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 100) : 0;
+        const totalTimeSpent = transformedAttempts.reduce((sum: number, attempt: any) => sum + attempt.timeSpent, 0);
+        const bestScore = Math.max(...transformedAttempts.map((a: any) => a.score));
+
+        setStats({
+          totalAttempts,
+          averageScore,
+          totalTimeSpent,
+          bestScore,
+          improvementRate: 0, // Could calculate this based on trend
+          completionRate: 100, // All stored attempts are completed
+          drillStats: [] // Could calculate per-drill stats if needed
+        });
+      } else {
+        setStats({
+          totalAttempts: 0,
+          averageScore: 0,
+          totalTimeSpent: 0,
+          bestScore: 0,
+          improvementRate: 0,
+          completionRate: 0,
+          drillStats: []
+        });
       }
+    } catch (error) {
+      console.error('Error loading local data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load history data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  });
-
-  // Fetch attempt statistics
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
-    queryKey: ['attemptStats'],
-    queryFn: async () => {
-      try {
-        return await getAttemptStats();
-      } catch (error) {
-        console.error('Error fetching attempt stats:', error);
-        throw error;
-      }
-    }
-  });
-
-  const attempts = attemptsData?.attempts || [];
-  const isLoading = attemptsLoading || statsLoading;
-  const error = attemptsError || statsError;
+  };
 
   // Prepare data for performance charts
-  const performanceData = attempts.map((attempt: Attempt) => ({
+  const performanceData = attempts.map((attempt: any) => ({
     date: attempt.createdAt,
     score: attempt.score,
     timeSpent: attempt.timeSpent,
     difficulty: attempt.drillId.difficulty
   })).reverse();
-  
+
   // Prepare data for progress visualization
-  const progressData = attempts.map((attempt: Attempt) => ({
+  const progressData = attempts.map((attempt: any) => ({
     _id: attempt._id,
     drillId: attempt.drillId._id,
     drillTitle: attempt.drillId.title,
@@ -66,7 +115,7 @@ const History = () => {
     correctAnswers: attempt.correctAnswers,
     timeSpent: attempt.timeSpent,
     createdAt: attempt.createdAt,
-    category: attempt.drillId.category,
+    category: attempt.drillId.tags?.[0] || 'General',
     difficulty: attempt.drillId.difficulty
   }));
 
