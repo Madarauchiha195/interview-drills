@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
-import PerformanceChart from '@/components/PerformanceChart';
 import StatisticsCards from '@/components/StatisticsCards';
-import DrillPerformanceChart from '@/components/DrillPerformanceChart';
-import ProgressVisualization from '@/components/ProgressVisualization';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,20 +16,22 @@ const History = () => {
   const [attempts, setAttempts] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadLocalData();
+    loadData();
   }, []);
 
-  const loadLocalData = () => {
+  const loadData = () => {
     try {
       setIsLoading(true);
+      setError(null);
 
-      // Get attempts from localStorage
+      // Load attempts from localStorage
       const localAttempts = JSON.parse(localStorage.getItem('drillAttempts') || '[]');
 
-      // Transform attempts to match expected format
-      const transformedAttempts = localAttempts.map((attempt: any) => {
+      // Transform local attempts to match expected format
+      const attemptsToUse = localAttempts.map((attempt: any) => {
         const drill = drillsData.find(d => d._id === attempt.drillId);
         return {
           _id: attempt._id,
@@ -51,47 +50,44 @@ const History = () => {
         };
       });
 
-      setAttempts(transformedAttempts);
+      setAttempts(attemptsToUse);
 
       // Calculate stats from local attempts
-      if (transformedAttempts.length > 0) {
-        const totalAttempts = transformedAttempts.length;
-        const totalScore = transformedAttempts.reduce((sum: number, attempt: any) => sum + attempt.score, 0);
-        const totalPossible = transformedAttempts.reduce((sum: number, attempt: any) => {
+      if (attemptsToUse.length > 0) {
+        const totalAttempts = attemptsToUse.length;
+        const totalScore = attemptsToUse.reduce((sum: number, attempt: any) => sum + attempt.score, 0);
+        const totalPossible = attemptsToUse.reduce((sum: number, attempt: any) => {
           const drill = drillsData.find(d => d._id === attempt.drillId._id);
           return sum + (drill?.totalPoints || 50);
         }, 0);
         const averageScore = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 100) : 0;
-        const totalTimeSpent = transformedAttempts.reduce((sum: number, attempt: any) => sum + attempt.timeSpent, 0);
-        const bestScore = Math.max(...transformedAttempts.map((a: any) => a.score));
+        const totalTimeSpent = attemptsToUse.reduce((sum: number, attempt: any) => sum + attempt.timeSpent, 0);
+        const bestScore = Math.max(...attemptsToUse.map((a: any) => a.score));
 
-        setStats({
+        const statsToUse = {
           totalAttempts,
           averageScore,
           totalTimeSpent,
           bestScore,
-          improvementRate: 0, // Could calculate this based on trend
-          completionRate: 100, // All stored attempts are completed
-          drillStats: [] // Could calculate per-drill stats if needed
-        });
-      } else {
-        setStats({
-          totalAttempts: 0,
-          averageScore: 0,
-          totalTimeSpent: 0,
-          bestScore: 0,
           improvementRate: 0,
-          completionRate: 0,
+          completionRate: 100,
           drillStats: []
-        });
+        };
+
+        setStats(statsToUse);
+      } else {
+        setStats(null); // Set to null to trigger empty state
       }
+
     } catch (error) {
-      console.error('Error loading local data:', error);
+      console.error('Error loading data:', error);
+      setError('Failed to load history data');
       toast({
         title: "Error",
         description: "Failed to load history data.",
         variant: "destructive",
       });
+      setStats(null);
     } finally {
       setIsLoading(false);
     }
@@ -162,7 +158,7 @@ const History = () => {
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Error Loading History</h1>
             <p className="text-muted-foreground mb-6">
-              Failed to load your practice history. Please try again later.
+              {error}
             </p>
             <Button onClick={() => window.location.reload()}>
               Retry
@@ -184,10 +180,12 @@ const History = () => {
           </p>
         </div>
 
+
+
         {/* Content Tabs */}
         <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Overview
@@ -258,7 +256,36 @@ const History = () => {
                   </CardContent>
                 </Card>
               ) : attempts && attempts.length > 0 ? (
-                <ProgressVisualization attempts={progressData} />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Progress Overview</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <p className="text-muted-foreground">
+                        You have completed {attempts.length} drill{attempts.length !== 1 ? 's' : ''}.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="text-center p-4 border rounded">
+                          <div className="text-2xl font-bold">{attempts.length}</div>
+                          <div className="text-sm text-muted-foreground">Total Attempts</div>
+                        </div>
+                        <div className="text-center p-4 border rounded">
+                          <div className="text-2xl font-bold">
+                            {Math.round(attempts.reduce((sum, a) => sum + a.correctAnswers, 0) / attempts.reduce((sum, a) => sum + a.totalQuestions, 0) * 100)}%
+                          </div>
+                          <div className="text-sm text-muted-foreground">Overall Accuracy</div>
+                        </div>
+                        <div className="text-center p-4 border rounded">
+                          <div className="text-2xl font-bold">
+                            {Math.round(attempts.reduce((sum, a) => sum + a.timeSpent, 0) / 60)}m
+                          </div>
+                          <div className="text-sm text-muted-foreground">Total Time</div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ) : (
                 <Card className="text-center py-12">
                   <CardContent>
@@ -285,7 +312,31 @@ const History = () => {
                   </CardContent>
                 </Card>
               ) : attempts && attempts.length > 0 ? (
-                <PerformanceChart data={performanceData} />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Performance Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {attempts.map((attempt, index) => (
+                        <div key={attempt._id} className="flex items-center justify-between p-4 border rounded">
+                          <div>
+                            <h4 className="font-medium">{attempt.drillId.title}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDate(attempt.createdAt)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold">{Math.round((attempt.score / (attempt.totalQuestions * 10)) * 100)}%</div>
+                            <div className="text-sm text-muted-foreground">
+                              {attempt.correctAnswers}/{attempt.totalQuestions} correct
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               ) : (
                 <Card className="text-center py-12">
                   <CardContent>
@@ -311,8 +362,58 @@ const History = () => {
                     <Skeleton className="h-64 w-full" />
                   </CardContent>
                 </Card>
-              ) : stats && stats.drillStats && stats.drillStats.length > 0 ? (
-                <DrillPerformanceChart drillStats={stats.drillStats} />
+              ) : attempts && attempts.length > 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Drill Analysis</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Group attempts by drill */}
+                      {Object.entries(
+                        attempts.reduce((acc: any, attempt) => {
+                          const drillId = attempt.drillId._id;
+                          if (!acc[drillId]) {
+                            acc[drillId] = {
+                              title: attempt.drillId.title,
+                              difficulty: attempt.drillId.difficulty,
+                              attempts: []
+                            };
+                          }
+                          acc[drillId].attempts.push(attempt);
+                          return acc;
+                        }, {})
+                      ).map(([drillId, drillData]: [string, any]) => (
+                        <div key={drillId} className="p-4 border rounded">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium">{drillData.title}</h4>
+                            <Badge className={getDifficultyColor(drillData.difficulty)}>
+                              {drillData.difficulty}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Attempts: </span>
+                              <span className="font-medium">{drillData.attempts.length}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Best Score: </span>
+                              <span className="font-medium">
+                                {Math.max(...drillData.attempts.map((a: any) => Math.round((a.score / (a.totalQuestions * 10)) * 100)))}%
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Avg Time: </span>
+                              <span className="font-medium">
+                                {Math.round(drillData.attempts.reduce((sum: number, a: any) => sum + a.timeSpent, 0) / drillData.attempts.length / 60)}m
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               ) : (
                 <Card className="text-center py-12">
                   <CardContent>

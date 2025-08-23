@@ -15,6 +15,7 @@ import { ArrowLeft, ChevronRight, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTimer } from '@/hooks/useTimer';
 import { drillsData } from '@/data/drillsData';
+import { submitAttempt } from '@/services/api';
 import { Drill } from '@/types/drill';
 
 const DrillPage = () => {
@@ -85,7 +86,7 @@ const DrillPage = () => {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!drill) return;
 
     const unansweredQuestions = drill.questions.filter(q => !answers[q.id]);
@@ -118,8 +119,8 @@ const DrillPage = () => {
 
       const percentage = Math.round((totalScore / drill.totalPoints) * 100);
 
-      // Create attempt object
-      const attempt = {
+      // Create attempt object for localStorage
+      const localAttempt = {
         _id: `attempt_${Date.now()}`,
         drillId: drill._id,
         score: totalScore,
@@ -132,10 +133,24 @@ const DrillPage = () => {
         completed: true
       };
 
-      // Save to localStorage
+      // Save to localStorage first (for immediate UI feedback)
       const existingAttempts = JSON.parse(localStorage.getItem('drillAttempts') || '[]');
-      existingAttempts.push(attempt);
+      existingAttempts.push(localAttempt);
       localStorage.setItem('drillAttempts', JSON.stringify(existingAttempts));
+
+      // Also try to save to MongoDB via API
+      try {
+        console.log('Submitting to MongoDB:', { drillId: drill._id, answers, timeSpent });
+        const response = await submitAttempt(drill._id, answers, timeSpent);
+        console.log('MongoDB submission response:', response);
+
+        if (response.success) {
+          console.log('Successfully saved to MongoDB');
+        }
+      } catch (apiError) {
+        console.error('Failed to save to MongoDB, but saved locally:', apiError);
+        // Don't show error to user since local save worked
+      }
 
       setResult({
         score: totalScore,
@@ -143,7 +158,7 @@ const DrillPage = () => {
         correctAnswers,
         timeSpent,
         percentage,
-        attemptId: attempt._id
+        attemptId: localAttempt._id
       });
 
       timer.pause();
