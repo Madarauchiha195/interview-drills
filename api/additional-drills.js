@@ -394,7 +394,7 @@ async function seedAdditionalDrills() {
     });
     console.log('✅ Connected to MongoDB');
 
-    // Insert additional drills
+    // Insert additional drills (without clearing existing data)
     const createdDrills = await Drill.insertMany(additionalDrills);
     console.log(`📚 Created ${createdDrills.length} additional drills`);
 

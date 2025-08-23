@@ -27,13 +27,12 @@ interface Stats {
   totalTimeSpent: number;
 }
 
-// No demo data needed - we'll use the API data
-
-const demoStats: Stats = {
-  totalAttempts: 12,
-  averageScore: 78,
-  completedDrills: 8,
-  totalTimeSpent: 240
+// Zero stats for new users
+const zeroStats: Stats = {
+  totalAttempts: 0,
+  averageScore: 0,
+  completedDrills: 0,
+  totalTimeSpent: 0
 };
 
 const Dashboard = () => {
@@ -129,7 +128,7 @@ const Dashboard = () => {
     const attempts = JSON.parse(localStorage.getItem('drillAttempts') || '[]');
 
     if (attempts.length === 0) {
-      return demoStats; // Fallback to demo stats if no attempts
+      return zeroStats; // Return zero stats for new users
     }
 
     const totalAttempts = attempts.length;
